@@ -1,0 +1,1277 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GitDrop — Push GitHub facile</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --card: #16161f;
+    --border: #252535;
+    --accent: #7c6cff;
+    --accent2: #ff6c9d;
+    --accent3: #6cffb8;
+    --text: #f0f0ff;
+    --muted: #6b6b8a;
+    --success: #6cffb8;
+    --error: #ff6c6c;
+    --warning: #ffb86c;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* BG GRID */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(124,108,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(124,108,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    top: -200px;
+    right: -200px;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(124,108,255,0.08) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 24px 16px 60px;
+  }
+
+  /* HEADER */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 40px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-icon {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+
+  .logo-text {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+
+  .logo-text span {
+    color: var(--accent);
+  }
+
+  .status-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    border-radius: 20px;
+  }
+
+  .status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--muted);
+    transition: background 0.3s;
+  }
+
+  .status-dot.connected { background: var(--success); box-shadow: 0 0 8px var(--success); }
+  .status-dot.error { background: var(--error); }
+
+  /* SECTION CARD */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 16px;
+    transition: border-color 0.2s;
+  }
+
+  .card:hover { border-color: rgba(124,108,255,0.3); }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+
+  .card-num {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .card-title {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+  }
+
+  .card-sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* INPUT */
+  .input-row {
+    display: flex;
+    gap: 10px;
+    align-items: stretch;
+  }
+
+  input[type="text"], input[type="password"], select {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    padding: 12px 14px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    width: 100%;
+  }
+
+  input:focus, select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(124,108,255,0.12);
+  }
+
+  select option { background: var(--card); }
+
+  .btn {
+    padding: 12px 20px;
+    border-radius: 10px;
+    border: none;
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), #9b5cff);
+    color: white;
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(124,108,255,0.4);
+  }
+
+  .btn-primary:active { transform: translateY(0); }
+
+  .btn-sm {
+    padding: 8px 14px;
+    font-size: 12px;
+    border-radius: 8px;
+  }
+
+  .btn-ghost {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+  .btn-success {
+    background: linear-gradient(135deg, #1a8f5f, var(--success));
+    color: #0a0a0f;
+  }
+
+  .btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+  }
+
+  /* TOKEN ROW */
+  .token-wrap {
+    position: relative;
+  }
+
+  .token-wrap input {
+    padding-right: 50px;
+  }
+
+  .eye-btn {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px;
+  }
+
+  .eye-btn:hover { color: var(--text); }
+
+  /* DROP ZONE */
+  .dropzone {
+    border: 2px dashed var(--border);
+    border-radius: 14px;
+    padding: 40px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.25s;
+    background: var(--surface);
+    position: relative;
+  }
+
+  .dropzone:hover, .dropzone.drag-over {
+    border-color: var(--accent);
+    background: rgba(124,108,255,0.05);
+  }
+
+  .dropzone.drag-over {
+    transform: scale(1.01);
+    box-shadow: 0 0 30px rgba(124,108,255,0.15);
+  }
+
+  .dropzone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+
+  .drop-icon { font-size: 40px; margin-bottom: 12px; }
+
+  .drop-title {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  .drop-sub { font-size: 13px; color: var(--muted); }
+
+  /* FILE LIST */
+  .file-list {
+    margin-top: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .file-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    animation: slideIn 0.2s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .file-icon { font-size: 20px; }
+
+  .file-name {
+    flex: 1;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .file-size {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .file-remove {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 2px 6px;
+    border-radius: 6px;
+    line-height: 1;
+  }
+
+  .file-remove:hover { color: var(--error); background: rgba(255,108,108,0.1); }
+
+  /* REPO CONFIG */
+  .config-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  @media (max-width: 500px) {
+    .config-grid { grid-template-columns: 1fr; }
+  }
+
+  .field-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .toggle-row:last-child { border-bottom: none; }
+
+  .toggle-label {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .toggle-name { font-size: 14px; font-weight: 600; }
+  .toggle-desc { font-size: 12px; color: var(--muted); }
+
+  .toggle {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    flex-shrink: 0;
+  }
+
+  .toggle input { opacity: 0; width: 0; height: 0; }
+
+  .toggle-slider {
+    position: absolute;
+    inset: 0;
+    background: var(--border);
+    border-radius: 24px;
+    cursor: pointer;
+    transition: 0.3s;
+  }
+
+  .toggle-slider::after {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    background: white;
+    border-radius: 50%;
+    top: 3px;
+    left: 3px;
+    transition: 0.3s;
+  }
+
+  .toggle input:checked + .toggle-slider { background: var(--accent); }
+  .toggle input:checked + .toggle-slider::after { transform: translateX(20px); }
+
+  /* PUSH BUTTON */
+  .push-btn {
+    width: 100%;
+    padding: 18px;
+    font-size: 16px;
+    border-radius: 14px;
+    justify-content: center;
+    letter-spacing: 0.5px;
+  }
+
+  /* PROGRESS */
+  .progress-wrap {
+    margin-top: 14px;
+    display: none;
+  }
+
+  .progress-wrap.visible { display: block; }
+
+  .progress-bar-bg {
+    background: var(--surface);
+    border-radius: 8px;
+    height: 6px;
+    overflow: hidden;
+    margin-bottom: 10px;
+  }
+
+  .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 8px;
+    width: 0%;
+    transition: width 0.4s ease;
+  }
+
+  .progress-log {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 120px;
+    overflow-y: auto;
+  }
+
+  .log-line { display: flex; gap: 8px; }
+  .log-time { color: var(--accent); flex-shrink: 0; }
+  .log-ok { color: var(--success); }
+  .log-err { color: var(--error); }
+  .log-info { color: var(--warning); }
+
+  /* RESULT */
+  .result-card {
+    background: rgba(108,255,184,0.05);
+    border: 1px solid rgba(108,255,184,0.2);
+    border-radius: 14px;
+    padding: 20px;
+    margin-top: 16px;
+    display: none;
+    animation: popIn 0.3s ease;
+  }
+
+  @keyframes popIn {
+    from { opacity: 0; transform: scale(0.97); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .result-card.visible { display: block; }
+
+  .result-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--success);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .link-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+  }
+
+  .link-label {
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    min-width: 70px;
+  }
+
+  .link-url {
+    flex: 1;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .copy-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 4px;
+    border-radius: 6px;
+    transition: color 0.2s;
+    flex-shrink: 0;
+  }
+
+  .copy-btn:hover { color: var(--accent); }
+  .copy-btn.copied { color: var(--success); }
+
+  /* REPOS LIST */
+  .repos-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+    margin-top: 10px;
+  }
+
+  .repo-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 13px;
+  }
+
+  .repo-item:hover { border-color: var(--accent); color: var(--accent); }
+  .repo-item.selected { border-color: var(--accent); background: rgba(124,108,255,0.08); }
+
+  .repo-private { font-size: 10px; color: var(--muted); background: var(--border); padding: 2px 6px; border-radius: 4px; }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 4px;
+    margin-bottom: 16px;
+  }
+
+  .tab {
+    flex: 1;
+    padding: 10px;
+    text-align: center;
+    border-radius: 9px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    transition: all 0.2s;
+    border: none;
+    background: none;
+  }
+
+  .tab.active {
+    background: var(--card);
+    color: var(--text);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  /* HELPER TEXT */
+  .helper {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 6px;
+    line-height: 1.5;
+  }
+
+  .helper a { color: var(--accent); text-decoration: none; }
+  .helper a:hover { text-decoration: underline; }
+
+  /* ALERT */
+  .alert {
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .alert-error { background: rgba(255,108,108,0.08); border: 1px solid rgba(255,108,108,0.2); color: var(--error); }
+  .alert-info { background: rgba(124,108,255,0.08); border: 1px solid rgba(124,108,255,0.2); color: #a599ff; }
+
+  /* COMMIT MSG */
+  .commit-wrap { margin-top: 12px; }
+
+  /* SPINNER */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spin { display: inline-block; animation: spin 0.8s linear infinite; }
+
+  /* FOOTER */
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 11px;
+    font-family: 'Space Mono', monospace;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="logo">
+      <div class="logo-icon">🐙</div>
+      <div>
+        <div class="logo-text">Git<span>Drop</span></div>
+      </div>
+    </div>
+    <div class="status-badge">
+      <div class="status-dot" id="statusDot"></div>
+      <span id="statusText">non connecté</span>
+    </div>
+  </header>
+
+  <!-- ÉTAPE 1 : TOKEN -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-num">1</div>
+      <div>
+        <div class="card-title">Token GitHub</div>
+        <div class="card-sub">Ton accès personnel à l'API</div>
+      </div>
+    </div>
+
+    <div id="alertZone"></div>
+
+    <div class="input-row">
+      <div class="token-wrap" style="flex:1">
+        <input type="password" id="tokenInput" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off">
+        <button class="eye-btn" onclick="toggleEye()" id="eyeBtn">👁️</button>
+      </div>
+      <button class="btn btn-primary" onclick="connectToken()" id="connectBtn">
+        <span id="connectBtnText">Connecter</span>
+      </button>
+    </div>
+    <p class="helper">Crée ton token sur <a href="https://github.com/settings/tokens/new" target="_blank">github.com/settings/tokens</a> → scope : <strong>repo</strong> (tout cocher)</p>
+
+    <div id="userInfo" style="display:none; margin-top:14px; display:none">
+      <div class="file-item">
+        <span id="userAvatar" style="font-size:24px">👤</span>
+        <div style="flex:1">
+          <div style="font-weight:700; font-size:14px" id="userName">—</div>
+          <div style="font-size:12px; color:var(--muted)" id="userLogin">—</div>
+        </div>
+        <span style="font-size:11px; color:var(--muted)" id="userRepos">— repos</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 2 : FICHIERS -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-num">2</div>
+      <div>
+        <div class="card-title">Fichiers à uploader</div>
+        <div class="card-sub">Glisse ou clique pour sélectionner</div>
+      </div>
+    </div>
+
+    <div class="dropzone" id="dropzone" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropFiles(event)">
+      <input type="file" multiple id="fileInput" onchange="addFiles(this.files)">
+      <div class="drop-icon">📂</div>
+      <div class="drop-title">Glisse tes fichiers ici</div>
+      <div class="drop-sub">ou clique pour parcourir • Tous formats acceptés</div>
+    </div>
+
+    <div class="file-list" id="fileList"></div>
+  </div>
+
+  <!-- ÉTAPE 3 : CONFIG REPO -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-num">3</div>
+      <div>
+        <div class="card-title">Configuration du repo</div>
+        <div class="card-sub">Choix du dépôt et des options</div>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('new')" id="tabNew">✨ Nouveau repo</button>
+      <button class="tab" onclick="switchTab('existing')" id="tabExisting">📁 Repo existant</button>
+    </div>
+
+    <!-- TAB NEW -->
+    <div class="tab-content active" id="tabContentNew">
+      <div class="config-grid">
+        <div>
+          <div class="field-label">Nom du repo</div>
+          <input type="text" id="repoName" placeholder="mon-super-projet">
+        </div>
+        <div>
+          <div class="field-label">Visibilité</div>
+          <select id="repoVisibility">
+            <option value="false">🌍 Public</option>
+            <option value="true">🔒 Privé</option>
+          </select>
+        </div>
+      </div>
+      <div class="commit-wrap">
+        <div class="field-label" style="margin-top:12px">Description (optionnel)</div>
+        <input type="text" id="repoDesc" placeholder="Mon projet incroyable...">
+      </div>
+    </div>
+
+    <!-- TAB EXISTING -->
+    <div class="tab-content" id="tabContentExisting">
+      <div class="field-label">Sélectionne un repo</div>
+      <input type="text" id="repoSearch" placeholder="🔍 Rechercher un repo..." style="margin-bottom:8px" oninput="filterRepos(this.value)">
+      <div class="repos-list" id="reposList">
+        <div style="color:var(--muted); font-size:13px; text-align:center; padding:20px">Connecte ton token d'abord</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 4 : OPTIONS -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-num">4</div>
+      <div>
+        <div class="card-title">Options</div>
+        <div class="card-sub">Tout configurer en un clic</div>
+      </div>
+    </div>
+
+    <div class="toggle-row">
+      <div class="toggle-label">
+        <span class="toggle-name">🌐 Activer GitHub Pages</span>
+        <span class="toggle-desc">Génère un lien public .github.io automatiquement</span>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="pagesToggle" checked>
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
+    <div class="toggle-row">
+      <div class="toggle-label">
+        <span class="toggle-name">🌿 Branch : main</span>
+        <span class="toggle-desc">Utiliser main comme branche par défaut</span>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="mainToggle" checked>
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
+    <div class="toggle-row">
+      <div class="toggle-label">
+        <span class="toggle-name">📝 Message de commit auto</span>
+        <span class="toggle-desc">Générer un message automatique avec date/heure</span>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="autoCommitToggle" checked onchange="toggleCommitMsg()">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
+    <div id="commitMsgWrap" style="display:none; margin-top:10px">
+      <div class="field-label">Message de commit personnalisé</div>
+      <input type="text" id="commitMsg" placeholder="feat: ajout des fichiers">
+    </div>
+  </div>
+
+  <!-- PUSH -->
+  <button class="btn btn-primary push-btn" onclick="pushFiles()" id="pushBtn">
+    🚀 Pusher sur GitHub
+  </button>
+
+  <!-- PROGRESS -->
+  <div class="progress-wrap" id="progressWrap">
+    <div class="progress-bar-bg">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+    <div class="progress-log" id="progressLog"></div>
+  </div>
+
+  <!-- RESULT -->
+  <div class="result-card" id="resultCard">
+    <div class="result-title">✅ Push réussi !</div>
+    <div id="resultLinks"></div>
+  </div>
+
+  <footer>GitDrop · Zéro dépendance · 100% local · API GitHub REST v3</footer>
+</div>
+
+<script>
+let token = '';
+let userLogin = '';
+let allRepos = [];
+let selectedRepo = null;
+let files = [];
+let currentTab = 'new';
+
+// ─── TOKEN ───────────────────────────────────────────────
+async function connectToken() {
+  const val = document.getElementById('tokenInput').value.trim();
+  if (!val) return showAlert('Entre ton token GitHub', 'error');
+
+  const btn = document.getElementById('connectBtn');
+  const btnText = document.getElementById('connectBtnText');
+  btnText.innerHTML = '<span class="spin">⟳</span>';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch('https://api.github.com/user', {
+      headers: { Authorization: `token ${val}`, Accept: 'application/vnd.github.v3+json' }
+    });
+
+    if (!res.ok) throw new Error('Token invalide ou permissions insuffisantes');
+
+    const data = await res.json();
+    token = val;
+    userLogin = data.login;
+
+    // Update status
+    document.getElementById('statusDot').className = 'status-dot connected';
+    document.getElementById('statusText').textContent = data.login;
+
+    // Show user info
+    const uInfo = document.getElementById('userInfo');
+    uInfo.style.display = 'block';
+    document.getElementById('userName').textContent = data.name || data.login;
+    document.getElementById('userLogin').textContent = '@' + data.login;
+    document.getElementById('userRepos').textContent = data.public_repos + ' repos';
+    document.getElementById('userAvatar').textContent = '✅';
+
+    clearAlert();
+    await loadRepos();
+  } catch (e) {
+    showAlert(e.message, 'error');
+    document.getElementById('statusDot').className = 'status-dot error';
+    document.getElementById('statusText').textContent = 'erreur';
+  }
+
+  btnText.textContent = 'Connecter';
+  btn.disabled = false;
+}
+
+async function loadRepos() {
+  const list = document.getElementById('reposList');
+  list.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:20px"><span class="spin">⟳</span> Chargement...</div>';
+
+  try {
+    const res = await fetch('https://api.github.com/user/repos?per_page=100&sort=updated', {
+      headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json' }
+    });
+    allRepos = await res.json();
+    renderRepos(allRepos);
+  } catch (e) {
+    list.innerHTML = '<div style="color:var(--error);font-size:13px;padding:10px">Erreur chargement repos</div>';
+  }
+}
+
+function renderRepos(repos) {
+  const list = document.getElementById('reposList');
+  if (!repos.length) {
+    list.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:20px">Aucun repo trouvé</div>';
+    return;
+  }
+
+  list.innerHTML = repos.map(r => `
+    <div class="repo-item" onclick="selectRepo('${r.name}', '${r.full_name}')" id="repo-${r.name}">
+      <span>${r.private ? '🔒' : '📁'}</span>
+      <span style="flex:1;font-family:'Space Mono',monospace;font-size:12px">${r.name}</span>
+      ${r.private ? '<span class="repo-private">privé</span>' : ''}
+    </div>
+  `).join('');
+}
+
+function filterRepos(q) {
+  const filtered = allRepos.filter(r => r.name.toLowerCase().includes(q.toLowerCase()));
+  renderRepos(filtered);
+}
+
+function selectRepo(name, fullName) {
+  selectedRepo = { name, fullName };
+  document.querySelectorAll('.repo-item').forEach(el => el.classList.remove('selected'));
+  const el = document.getElementById('repo-' + name);
+  if (el) el.classList.add('selected');
+}
+
+// ─── FILES ───────────────────────────────────────────────
+function dragOver(e) {
+  e.preventDefault();
+  document.getElementById('dropzone').classList.add('drag-over');
+}
+
+function dragLeave(e) {
+  document.getElementById('dropzone').classList.remove('drag-over');
+}
+
+function dropFiles(e) {
+  e.preventDefault();
+  document.getElementById('dropzone').classList.remove('drag-over');
+  addFiles(e.dataTransfer.files);
+}
+
+function addFiles(newFiles) {
+  for (const f of newFiles) {
+    if (!files.find(x => x.name === f.name && x.size === f.size)) {
+      files.push(f);
+    }
+  }
+  renderFiles();
+}
+
+function renderFiles() {
+  const list = document.getElementById('fileList');
+  if (!files.length) { list.innerHTML = ''; return; }
+
+  list.innerHTML = files.map((f, i) => `
+    <div class="file-item">
+      <span class="file-icon">${getFileIcon(f.name)}</span>
+      <span class="file-name">${f.name}</span>
+      <span class="file-size">${formatSize(f.size)}</span>
+      <button class="file-remove" onclick="removeFile(${i})">✕</button>
+    </div>
+  `).join('');
+}
+
+function removeFile(i) {
+  files.splice(i, 1);
+  renderFiles();
+}
+
+function getFileIcon(name) {
+  const ext = name.split('.').pop().toLowerCase();
+  const icons = { html:'🌐', css:'🎨', js:'⚡', ts:'🔷', json:'📋', md:'📝', png:'🖼️', jpg:'🖼️', jpeg:'🖼️', gif:'🎞️', svg:'✏️', pdf:'📄', zip:'📦', mp4:'🎬', mp3:'🎵' };
+  return icons[ext] || '📄';
+}
+
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/(1024*1024)).toFixed(1) + ' MB';
+}
+
+// ─── TABS ────────────────────────────────────────────────
+function switchTab(tab) {
+  currentTab = tab;
+  document.getElementById('tabNew').classList.toggle('active', tab === 'new');
+  document.getElementById('tabExisting').classList.toggle('active', tab === 'existing');
+  document.getElementById('tabContentNew').classList.toggle('active', tab === 'new');
+  document.getElementById('tabContentExisting').classList.toggle('active', tab === 'existing');
+}
+
+// ─── OPTIONS ─────────────────────────────────────────────
+function toggleCommitMsg() {
+  const auto = document.getElementById('autoCommitToggle').checked;
+  document.getElementById('commitMsgWrap').style.display = auto ? 'none' : 'block';
+}
+
+function toggleEye() {
+  const inp = document.getElementById('tokenInput');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+// ─── PUSH ────────────────────────────────────────────────
+async function pushFiles() {
+  if (!token) return showAlert('Connecte ton token d\'abord !', 'error');
+  if (!files.length) return showAlert('Ajoute au moins un fichier', 'error');
+
+  const enablePages = document.getElementById('pagesToggle').checked;
+  const useMain = document.getElementById('mainToggle').checked;
+  const branch = useMain ? 'main' : 'master';
+  const autoCommit = document.getElementById('autoCommitToggle').checked;
+  const now = new Date().toLocaleString('fr-FR');
+  const commitMessage = autoCommit
+    ? `🚀 GitDrop push — ${now}`
+    : (document.getElementById('commitMsg').value || `push — ${now}`);
+
+  let repoFullName;
+
+  document.getElementById('progressWrap').classList.add('visible');
+  document.getElementById('resultCard').classList.remove('visible');
+  document.getElementById('progressLog').innerHTML = '';
+  setProgress(0);
+  document.getElementById('pushBtn').disabled = true;
+
+  try {
+    // ── Créer ou récupérer repo ──
+    if (currentTab === 'new') {
+      const name = document.getElementById('repoName').value.trim().replace(/\s+/g, '-');
+      if (!name) throw new Error('Entre un nom de repo !');
+      const desc = document.getElementById('repoDesc').value.trim();
+      const isPrivate = document.getElementById('repoVisibility').value === 'true';
+
+      addLog('Création du repo...', 'info');
+      const res = await ghFetch('POST', '/user/repos', { name, description: desc, private: isPrivate, auto_init: false });
+      if (!res.ok) {
+        const err = await res.json();
+        if (err.errors && err.errors[0].message.includes('already exists')) {
+          addLog('Repo existant détecté, utilisation en cours...', 'info');
+          repoFullName = `${userLogin}/${name}`;
+        } else {
+          throw new Error(err.message || 'Erreur création repo');
+        }
+      } else {
+        const repo = await res.json();
+        repoFullName = repo.full_name;
+        addLog(`✓ Repo créé : ${repoFullName}`, 'ok');
+      }
+    } else {
+      if (!selectedRepo) throw new Error('Sélectionne un repo !');
+      repoFullName = selectedRepo.fullName;
+      addLog(`✓ Repo sélectionné : ${repoFullName}`, 'ok');
+    }
+
+    setProgress(15);
+
+    // ── S'assurer que la branche existe ──
+    addLog(`Vérification branche ${branch}...`, 'info');
+    await ensureBranch(repoFullName, branch);
+    setProgress(25);
+
+    // ── Upload fichiers ──
+    const total = files.length;
+    for (let i = 0; i < total; i++) {
+      const file = files[i];
+      addLog(`Upload : ${file.name}...`, 'info');
+      const content = await toBase64(file);
+      
+      // Vérifier si fichier existe déjà (pour le SHA)
+      let sha = undefined;
+      try {
+        const checkRes = await ghFetch('GET', `/repos/${repoFullName}/contents/${encodeURIComponent(file.name)}?ref=${branch}`);
+        if (checkRes.ok) {
+          const existing = await checkRes.json();
+          sha = existing.sha;
+        }
+      } catch (e) {}
+
+      const body = {
+        message: commitMessage,
+        content,
+        branch
+      };
+      if (sha) body.sha = sha;
+
+      const uploadRes = await ghFetch('PUT', `/repos/${repoFullName}/contents/${encodeURIComponent(file.name)}`, body);
+      if (!uploadRes.ok) {
+        const err = await uploadRes.json();
+        throw new Error(`Erreur upload ${file.name}: ${err.message}`);
+      }
+
+      addLog(`✓ ${file.name} uploadé`, 'ok');
+      setProgress(25 + ((i + 1) / total) * 55);
+    }
+
+    setProgress(80);
+
+    // ── Activer GitHub Pages ──
+    let pagesUrl = null;
+    if (enablePages) {
+      addLog('Activation GitHub Pages...', 'info');
+      try {
+        await ghFetch('POST', `/repos/${repoFullName}/pages`, {
+          source: { branch, path: '/' }
+        });
+        pagesUrl = `https://${userLogin}.github.io/${repoFullName.split('/')[1]}/`;
+        addLog(`✓ GitHub Pages activé !`, 'ok');
+      } catch (e) {
+        // Peut-être déjà activé
+        try {
+          const pRes = await ghFetch('GET', `/repos/${repoFullName}/pages`);
+          if (pRes.ok) {
+            const pData = await pRes.json();
+            pagesUrl = pData.html_url;
+            addLog('✓ GitHub Pages déjà activé', 'ok');
+          }
+        } catch {}
+      }
+    }
+
+    setProgress(100);
+    addLog('🎉 Push terminé avec succès !', 'ok');
+
+    // ── Afficher résultats ──
+    showResult(repoFullName, branch, pagesUrl);
+
+  } catch (e) {
+    addLog('✗ Erreur : ' + e.message, 'err');
+    showAlert(e.message, 'error');
+  }
+
+  document.getElementById('pushBtn').disabled = false;
+}
+
+async function ensureBranch(repoFullName, branch) {
+  // Vérifier si la branche existe
+  const res = await ghFetch('GET', `/repos/${repoFullName}/branches/${branch}`);
+  if (res.ok) return;
+
+  // Essayer de créer un fichier init pour init la branche
+  try {
+    await ghFetch('PUT', `/repos/${repoFullName}/contents/README.md`, {
+      message: '🌱 Init repository',
+      content: btoa('# ' + repoFullName.split('/')[1] + '\n\nCréé avec GitDrop 🐙'),
+      branch
+    });
+  } catch (e) {
+    // Branch existe peut-être déjà via auto_init
+  }
+}
+
+async function ghFetch(method, path, body) {
+  const opts = {
+    method,
+    headers: {
+      Authorization: `token ${token}`,
+      Accept: 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json'
+    }
+  };
+  if (body) opts.body = JSON.stringify(body);
+  return fetch(`https://api.github.com${path}`, opts);
+}
+
+function toBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(',')[1]);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+
+// ─── UI HELPERS ──────────────────────────────────────────
+function setProgress(pct) {
+  document.getElementById('progressBar').style.width = pct + '%';
+}
+
+function addLog(msg, type = 'info') {
+  const log = document.getElementById('progressLog');
+  const time = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const div = document.createElement('div');
+  div.className = 'log-line';
+  div.innerHTML = `<span class="log-time">[${time}]</span><span class="log-${type}">${msg}</span>`;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+function showResult(repoFullName, branch, pagesUrl) {
+  const card = document.getElementById('resultCard');
+  const links = document.getElementById('resultLinks');
+
+  const repoUrl = `https://github.com/${repoFullName}`;
+  const rawBase = `https://raw.githubusercontent.com/${repoFullName}/${branch}/`;
+  const mainFile = files.find(f => f.name === 'index.html') || files[0];
+
+  let html = '';
+
+  html += linkItem('🐙 Repo', repoUrl);
+  if (pagesUrl) html += linkItem('🌐 Pages', pagesUrl);
+  if (mainFile) html += linkItem('📄 Raw', rawBase + mainFile.name);
+
+  links.innerHTML = html;
+  card.classList.add('visible');
+  card.style.display = 'block';
+  card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function linkItem(label, url) {
+  return `
+    <div class="link-item">
+      <span class="link-label">${label}</span>
+      <span class="link-url">${url}</span>
+      <button class="copy-btn" onclick="copyLink(this, '${url}')">📋</button>
+      <a href="${url}" target="_blank" style="color:var(--muted);text-decoration:none;font-size:14px">↗️</a>
+    </div>
+  `;
+}
+
+function copyLink(btn, url) {
+  navigator.clipboard.writeText(url);
+  btn.textContent = '✅';
+  btn.classList.add('copied');
+  setTimeout(() => { btn.textContent = '📋'; btn.classList.remove('copied'); }, 2000);
+}
+
+function showAlert(msg, type = 'info') {
+  document.getElementById('alertZone').innerHTML = `
+    <div class="alert alert-${type}">⚠️ ${msg}</div>
+  `;
+}
+
+function clearAlert() {
+  document.getElementById('alertZone').innerHTML = '';
+}
+
+// ─── ENTER KEY ───────────────────────────────────────────
+document.getElementById('tokenInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') connectToken();
+});
+</script>
+</body>
+</html>
